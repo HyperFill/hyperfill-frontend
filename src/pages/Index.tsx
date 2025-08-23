@@ -1,6 +1,6 @@
 // src/pages/Index.tsx - VERSION FINALE
 import { TradingTerminal } from "../components/TradingTerminal";
-import { WalletConnect } from "../components/WalletConnect";
+import { WalletConnect } from "../components/walletConnect";
 import { VaultDashboard } from "../components/VaultDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
