@@ -1,6 +1,8 @@
-// src/pages/Index.tsx - VERSION TEST
+// src/pages/Index.tsx - VERSION FINALE
 import { TradingTerminal } from "../components/TradingTerminal";
 import { WalletConnect } from "../components/WalletConnect";
+import { VaultDashboard } from "../components/VaultDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   return (
@@ -13,9 +15,22 @@ const Index = () => {
         </div>
       </header>
       
-      {/* Contenu principal */}
+      {/* Contenu principal avec tabs */}
       <main className="container mx-auto py-6">
-        <TradingTerminal />
+        <Tabs defaultValue="vault" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="vault">Vault Dashboard</TabsTrigger>
+            <TabsTrigger value="trading">Trading Terminal</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="vault" className="space-y-4">
+            <VaultDashboard />
+          </TabsContent>
+          
+          <TabsContent value="trading" className="space-y-4">
+            <TradingTerminal />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

@@ -3,25 +3,24 @@ import { AgentStatusPanel } from "./ui/agent-status-panel";
 import { VaultInterface } from "./ui/vault-interface";
 import { TerminalLog } from "./ui/terminal-log";
 import { MarketStats } from "./ui/market-stats";
-import { Wallet, Settings, Power, Terminal } from "lucide-react";
-import { useState } from "react";
+import { Wallet, Settings, Power, Terminal, AlertTriangle } from "lucide-react";
+import { useWallet } from "@/hooks/useWallet";
 
 export function TradingTerminal() {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState("");
+  const { 
+    account, 
+    isConnected, 
+    isConnecting, 
+    connect, 
+    disconnect, 
+    isOnSeiTestnet,
+    switchToSeiTestnet 
+  } = useWallet();
 
-  const handleConnectWallet = async () => {
-    // Simulate wallet connection
-    setWalletAddress("sei1abc...xyz789");
-    setIsWalletConnected(true);
-    alert("Wallet connected successfully!");
+  const formatAddress = (address: string) => {
+    return `sei1${address.slice(6, 10)}...${address.slice(-6)}`;
   };
 
-  const handleDisconnectWallet = () => {
-    setWalletAddress("");
-    setIsWalletConnected(false);
-    alert("Wallet disconnected!");
-  };
   return (
     <div className="min-h-screen bg-background text-foreground p-2 font-terminal max-w-7xl mx-auto">
       {/* Terminal Header */}
@@ -40,35 +39,52 @@ export function TradingTerminal() {
           <Button variant="outline" size="sm" onClick={() => alert("Settings panel opened!")}>
             <Settings className="h-4 w-4" />
           </Button>
+
+          {/* Network Warning */}
+          {isConnected && !isOnSeiTestnet && (
+            <Button
+              onClick={switchToSeiTestnet}
+              variant="destructive"
+              size="sm"
+              className="flex items-center gap-2 font-mono text-xs"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              WRONG_NETWORK
+            </Button>
+          )}
           
-          {!isWalletConnected ? (
+          {!isConnected ? (
             <Button 
               variant="terminal" 
               size="sm" 
               className="animate-pulse-glow font-mono"
-              onClick={handleConnectWallet}
+              onClick={connect}
+              disabled={isConnecting}
             >
               <Wallet className="h-4 w-4 mr-2" />
-              Connect Wallet
+              {isConnecting ? "CONNECTING..." : "Connect Wallet"}
             </Button>
           ) : (
             <div className="flex items-center space-x-2">
               <span className="text-xs font-mono text-green-400">
-                {walletAddress}
+                {formatAddress(account!)}
               </span>
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={handleDisconnectWallet}
+                onClick={disconnect}
+                className="font-mono text-xs"
               >
-                Disconnect
+                ./disconnect
               </Button>
             </div>
           )}
           
           <div className="flex items-center space-x-2 text-success">
             <Power className="h-4 w-4" />
-            <span className="text-sm font-mono">ONLINE</span>
+            <span className="text-sm font-mono">
+              {isConnected && isOnSeiTestnet ? "ONLINE" : "OFFLINE"}
+            </span>
           </div>
         </div>
       </div>
@@ -86,12 +102,22 @@ export function TradingTerminal() {
 ╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
                                                                       
 [SYSTEM] HyperFill Autonomous Trading Terminal v2.1.0
-[SYSTEM] Connected to Sei Network (mainnet) 
+[SYSTEM] Connected to Sei Network (testnet) 
 [SYSTEM] AI Trading Collective: Buffett, Belfort, Lynch & Dalio
-[SYSTEM] Vault Status: ACTIVE | TVL: 2,487,329.45 SEI | ROI: +18.7%
+[SYSTEM] Vault Status: ${isConnected && isOnSeiTestnet ? 'ACTIVE' : 'STANDBY'} | Network: ${isOnSeiTestnet ? 'SEI-TESTNET' : 'UNKNOWN'}
 [SYSTEM] "We make money while you sleep" - The HyperFill Team
           `}</pre>
         </div>
+
+        {/* Connection Status */}
+        {!isConnected && (
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded font-mono text-xs">
+            <span className="text-destructive">[ERROR]</span>
+            <span className="text-muted-foreground"> No wallet connection detected. Execute </span>
+            <span className="text-green-400">./connect-wallet</span>
+            <span className="text-muted-foreground"> to establish connection.</span>
+          </div>
+        )}
 
         {/* Terminal Prompt */}
         <div className="mb-4 text-sm font-mono">
@@ -135,11 +161,11 @@ export function TradingTerminal() {
             variant="ghost" 
             size="sm" 
             className="text-xs font-mono hover:bg-muted/50"
-            onClick={handleConnectWallet}
-            disabled={isWalletConnected}
+            onClick={connect}
+            disabled={isConnected || isConnecting}
           >
             <Wallet className="h-3 w-3 mr-1" />
-            {isWalletConnected ? "./wallet-connected" : "./connect-wallet"}
+            {isConnected ? "./wallet-connected" : "./connect-wallet"}
           </Button>
           <Button 
             variant="ghost" 
@@ -152,7 +178,7 @@ export function TradingTerminal() {
           </Button>
           <div className="flex items-center space-x-2 text-success text-xs font-mono">
             <Power className="h-3 w-3" />
-            <span>DAEMON RUNNING</span>
+            <span>DAEMON {isConnected && isOnSeiTestnet ? 'RUNNING' : 'STANDBY'}</span>
           </div>
         </div>
           
@@ -169,15 +195,15 @@ export function TradingTerminal() {
       {/* Status Bar */}
       <div className="flex items-center justify-between text-xs font-mono mt-2 px-2 py-1 bg-muted/30 border border-border rounded">
         <div className="flex items-center space-x-4">
-          <span className="text-success">●</span>
-          <span>SEI MAINNET</span>
+          <span className={isConnected && isOnSeiTestnet ? "text-success" : "text-destructive"}>●</span>
+          <span>{isOnSeiTestnet ? "SEI TESTNET" : "DISCONNECTED"}</span>
           <span className="text-muted-foreground">|</span>
-          <span>BLOCK: 2,487,329</span>
+          <span>STATUS: {isConnected ? (isOnSeiTestnet ? "ACTIVE" : "WRONG_NET") : "OFFLINE"}</span>
           <span className="text-muted-foreground">|</span>
-          <span>GAS: 12 gwei</span>
+          <span>WALLET: {isConnected ? "CONNECTED" : "NONE"}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span>LATENCY: 47ms</span>
+          <span>LATENCY: {isConnected ? "47ms" : "∞"}</span>
           <span className="text-muted-foreground">|</span>
           <span>CPU: 23%</span>
           <span className="text-muted-foreground">|</span>
