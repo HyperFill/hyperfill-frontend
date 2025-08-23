@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <style>
+      .symbol { fill: #ff0000; stroke: #ffffff; stroke-width: 0.5; }
+      .background { fill: #000000; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect class="background" width="32" height="32"/>
+  
+  <!-- Main symbol - stylized star/X with sharp angles -->
+  <g class="symbol">
+    <!-- Top-left point - long thin triangle pointing up-left -->
+    <path d="M16 8 L8 16 L12 20 L16 16 Z"/>
+    
+    <!-- Top-right point - shorter wider triangle pointing up-right -->
+    <path d="M16 8 L24 12 L20 16 L16 16 Z"/>
+    
+    <!-- Bottom-left point - long narrow jagged shape pointing down-left -->
+    <path d="M16 24 L8 20 L12 16 L16 16 Z"/>
+    
+    <!-- Bottom-right point - wider blocky shape pointing down-right -->
+    <path d="M16 24 L24 20 L20 16 L16 16 Z"/>
+    
+    <!-- Center connecting elements -->
+    <path d="M12 16 L20 16 L18 18 L14 18 Z"/>
+  </g>
+</svg>
