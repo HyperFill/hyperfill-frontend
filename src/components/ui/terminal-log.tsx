@@ -94,7 +94,7 @@ export function TerminalLog() {
       <ScrollArea className="h-80">
         <div className="p-3 space-y-1 font-mono text-xs">
           {logs.map((log) => (
-            <div key={log.id} className="hover:bg-muted/20 transition-colors animate-data-stream">
+            <div key={log.id} className="hover:bg-muted/20 transition-colors">
               <div className="flex items-start space-x-2">
                 <span className="text-muted-foreground">{log.timestamp}</span>
                 <span className={`${getLevelColor(log.level)}`}>

@@ -110,7 +110,7 @@ export function AgentStatusPanel() {
           (["processing", "analyzing", "executing", "online"] as const)[Math.floor(Math.random() * 4)] : 
           agent.status
       })));
-    }, 2000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
