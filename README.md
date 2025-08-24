@@ -1,16 +1,3 @@
-██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███████╗██╗██╗     ██╗     
-██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔════╝██║██║     ██║     
-███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝█████╗  ██║██║     ██║     
-██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝  ██║██║     ██║     
-██║  ██║   ██║   ██║     ███████╗██║  ██║██║     ██║███████╗███████╗
-╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
-                                                                      
-[SYSTEM] HyperFill Autonomous Trading Terminal v2.1.0
-[SYSTEM] Connected to Sei Network (testnet) 
-[SYSTEM] AI Trading Collective: Buffett, Belfort, Lynch & Dalio
-[SYSTEM] Vault Status: ACTIVE | Network: SEI-TESTNET
-[SYSTEM] "We make money while you sleep" - The HyperFill Team
-
  # HyperFill Frontend
 
 A DeFi vault management and trading terminal built with React and TypeScript. The application is an interface for managing vault deposits/withdrawals and trading operations on SEI through an AI system with multiple agents.
