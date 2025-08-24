@@ -1,5 +1,18 @@
  # HyperFill Frontend
 
+ ```
+██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███████╗██╗██╗     ██╗     
+██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔════╝██║██║     ██║     
+███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝█████╗  ██║██║     ██║     
+██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝  ██║██║     ██║     
+██║  ██║   ██║   ██║     ███████╗██║  ██║██║     ██║███████╗███████╗
+╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
+
+          First AI Market Making Vault on SEI Network 
+              "We make money while you sleep" - The HyperFill Team
+```
+
+
 A DeFi vault management and trading terminal built with React and TypeScript. The application is an interface for managing vault deposits/withdrawals and trading operations on SEI through an AI system with multiple agents.
 
 ## Why Terminal Frontend?
