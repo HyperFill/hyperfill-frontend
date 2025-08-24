@@ -4,9 +4,12 @@
 ██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝  ██║██║     ██║     
 ██║  ██║   ██║   ██║     ███████╗██║  ██║██║     ██║███████╗███████╗
 ╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
-
-          First AI Market Making Vault on SEI Network 
-              "We make money while you sleep" - The HyperFill Team
+                                                                      
+[SYSTEM] HyperFill Autonomous Trading Terminal v2.1.0
+[SYSTEM] Connected to Sei Network (testnet) 
+[SYSTEM] AI Trading Collective: Buffett, Belfort, Lynch & Dalio
+[SYSTEM] Vault Status: ACTIVE | Network: SEI-TESTNET
+[SYSTEM] "We make money while you sleep" - The HyperFill Team
 
  # HyperFill Frontend
 
