@@ -567,7 +567,7 @@ export function TradingTerminal() {
   const [tokenApprovals, setTokenApprovals] = useState([]);
   const [pendingOrder, setPendingOrder] = useState(null);
 
-  const currentSymbol = 'SEI_USDT';
+  const currentSymbol = `${CONTRACTS.WSEI_ADDRESS}_${CONTRACTS.USDT_ADDRESS}`;
 
   const addLog = (message, type = 'info') => {
     const newLog = {
