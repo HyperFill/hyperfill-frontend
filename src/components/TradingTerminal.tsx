@@ -409,6 +409,9 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
           )}
 
           <Button
+            onClick={() => {
+              console.log
+            }}
             type="submit"
             className="w-full font-mono"
             disabled={loading || !account || !price || !quantity}
