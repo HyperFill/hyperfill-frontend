@@ -9,9 +9,9 @@ export const WalletConnect = () => {
     account, 
     isConnected, 
     isConnecting, 
+    isOnSeiTestnet, 
     connect, 
     disconnect, 
-    isOnSeiTestnet,
     switchToSeiTestnet 
   } = useWallet();
 
@@ -19,7 +19,27 @@ export const WalletConnect = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  // Check if MetaMask is installed
+  const isMetaMaskInstalled = typeof window !== 'undefined' && Boolean(window.ethereum?.isMetaMask);
+
+  // Show install MetaMask message if not installed
+  if (!isMetaMaskInstalled) {
+    return (
+      <Button
+        onClick={() => window.open('https://metamask.io/download/', '_blank')}
+        variant="outline"
+        className="flex items-center gap-2"
+      >
+        <Wallet className="h-4 w-4" />
+        Install MetaMask
+      </Button>
+    );
+  }
+
   if (isConnected && account) {
+    // Handle both string and JsonRpcSigner account types
+    const accountAddress = typeof account === 'string' ? account : account;
+    
     return (
       <div className="flex items-center gap-2">
         {!isOnSeiTestnet && (
@@ -39,7 +59,7 @@ export const WalletConnect = () => {
         </Badge>
         
         <Badge variant="outline" className="px-3 py-1">
-          {formatAddress(account)}
+          {formatAddress(accountAddress)}
         </Badge>
         
         <Button

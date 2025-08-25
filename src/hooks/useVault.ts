@@ -1,4 +1,4 @@
-// src/hooks/useVault.ts
+// src/hooks/useVault.ts - ETHERS V6
 import { useState, useCallback, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { useWallet } from './useWallet';
@@ -93,16 +93,16 @@ export const useVault = () => {
       ]);
 
       setStats({
-        userShares: ethers.utils.formatEther(userShares),
-        userBalance: ethers.utils.formatEther(userBalance),
-        totalAssets: ethers.utils.formatEther(totalAssets),
-        totalSupply: ethers.utils.formatEther(totalSupply),
-        sharePrice: ethers.utils.formatEther(sharePrice),
-        availableAssets: ethers.utils.formatEther(availableAssets),
-        minDeposit: ethers.utils.formatEther(minDeposit),
+        userShares: ethers.formatEther(userShares),
+        userBalance: ethers.formatEther(userBalance),
+        totalAssets: ethers.formatEther(totalAssets),
+        totalSupply: ethers.formatEther(totalSupply),
+        sharePrice: ethers.formatEther(sharePrice),
+        availableAssets: ethers.formatEther(availableAssets),
+        minDeposit: ethers.formatEther(minDeposit),
         isPaused,
-        wseiBalance: ethers.utils.formatEther(wseiBalance),
-        wseiAllowance: ethers.utils.formatEther(wseiAllowance),
+        wseiBalance: ethers.formatEther(wseiBalance),
+        wseiAllowance: ethers.formatEther(wseiAllowance),
       });
     } catch (error) {
       console.error('Error fetching vault stats:', error);
@@ -124,12 +124,11 @@ export const useVault = () => {
       if (!contracts) return false;
 
       const { wseiContract } = contracts;
-      const amountWei = ethers.utils.parseEther(amount);
+      const amountWei = ethers.parseEther(amount);
 
       const tx = await wseiContract.approve(CONTRACTS.VAULT_ADDRESS, amountWei);
       await tx.wait();
 
-      // Refresh stats after approval
       await fetchStats();
       return true;
     } catch (error: any) {
@@ -152,12 +151,11 @@ export const useVault = () => {
       if (!contracts) return { success: false, error: 'Failed to get contracts' };
 
       const { vaultContract } = contracts;
-      const amountWei = ethers.utils.parseEther(amount);
+      const amountWei = ethers.parseEther(amount);
 
-      // Check if approval is needed
       if (stats) {
-        const allowance = ethers.utils.parseEther(stats.wseiAllowance);
-        if (allowance.lt(amountWei)) {
+        const allowance = ethers.parseEther(stats.wseiAllowance);
+        if (allowance < amountWei) {
           const approved = await approveWSEI(amount);
           if (!approved) {
             return { success: false, error: 'Failed to approve WSEI' };
@@ -165,23 +163,27 @@ export const useVault = () => {
         }
       }
 
-      // Execute deposit
       const tx = await vaultContract.depositLiquidity(amountWei, {
-        gasLimit: 300000, // Set reasonable gas limit
+        gasLimit: 300000,
       });
 
       const receipt = await tx.wait();
 
-      // Parse events to get shares received
       let sharesReceived = '0';
-      if (receipt.events) {
-        const depositEvent = receipt.events.find((e: any) => e.event === 'LiquidityAdded');
-        if (depositEvent) {
-          sharesReceived = ethers.utils.formatEther(depositEvent.args.shares);
+      if (receipt.logs) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = vaultContract.interface.parseLog(log);
+            if (parsed && parsed.name === 'LiquidityAdded') {
+              sharesReceived = ethers.formatEther(parsed.args.shares);
+              break;
+            }
+          } catch (e) {
+            // Skip unparseable logs
+          }
         }
       }
 
-      // Refresh stats
       await fetchStats();
 
       return {
@@ -218,23 +220,27 @@ export const useVault = () => {
 
       const { vaultContract } = contracts;
 
-      // Execute withdraw
       const tx = await vaultContract.withdrawProfits({
-        gasLimit: 300000, // Set reasonable gas limit
+        gasLimit: 300000,
       });
 
       const receipt = await tx.wait();
 
-      // Parse events to get assets received
       let assetsReceived = '0';
-      if (receipt.events) {
-        const withdrawEvent = receipt.events.find((e: any) => e.event === 'LiquidityRemoved');
-        if (withdrawEvent) {
-          assetsReceived = ethers.utils.formatEther(withdrawEvent.args.assets);
+      if (receipt.logs) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = vaultContract.interface.parseLog(log);
+            if (parsed && parsed.name === 'LiquidityRemoved') {
+              assetsReceived = ethers.formatEther(parsed.args.assets);
+              break;
+            }
+          } catch (e) {
+            // Skip unparseable logs
+          }
         }
       }
 
-      // Refresh stats
       await fetchStats();
 
       return {
@@ -258,7 +264,6 @@ export const useVault = () => {
     }
   }, [signer, getContracts, fetchStats]);
 
-  // Auto-fetch stats when wallet connects
   useEffect(() => {
     if (isConnected && account) {
       fetchStats();
