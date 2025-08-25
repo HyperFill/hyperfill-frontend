@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 
 import { useWallet } from '@/hooks/useWallet';
+import { useTrading } from '@/hooks/useTrading';
+import { ApprovalModal } from './ApprovalModal';
+import { CONTRACTS } from '@/lib/contracts';
 
 // API Configuration
 const API_BASE_URL = import.meta.env?.VITE_ORDERBOOK_API_URL || 'http://localhost:8001';
@@ -289,14 +292,20 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
     e.preventDefault();
     if (!price || !quantity || !account) return;
 
+    const getTokenAddress = (symbol) => {
+      if (symbol === 'SEI') return CONTRACTS.WSEI_ADDRESS;
+      if (symbol === 'USDT') return CONTRACTS.USDT_ADDRESS;
+      return symbol;
+    };
+
     onOrderSubmit({
       account,
-      baseAsset,
-      quoteAsset,
+      baseAsset: getTokenAddress(baseAsset),
+      quoteAsset: getTokenAddress(quoteAsset),
       price: parseFloat(price),
       quantity: parseFloat(quantity),
       side: side === 'buy' ? 'bid' : 'ask',
-      privateKey: '0x' + '0'.repeat(64) // Placeholder - in production, handle securely
+      privateKey: '0x' + '0'.repeat(64)
     });
   };
 
@@ -543,6 +552,8 @@ export function TradingTerminal() {
     switchToSeiTestnet
   } = useWallet();
 
+  const { checkOrderApprovals } = useTrading();
+
   const [orderbook, setOrderbook] = useState(null);
   const [loading, setLoading] = useState(false);
   const [agentRunning, setAgentRunning] = useState(false);
@@ -551,6 +562,10 @@ export function TradingTerminal() {
     { timestamp: new Date().toLocaleTimeString(), message: 'System initialized', type: 'info' },
     { timestamp: new Date().toLocaleTimeString(), message: 'Waiting for wallet connection...', type: 'info' }
   ]);
+
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+  const [tokenApprovals, setTokenApprovals] = useState([]);
+  const [pendingOrder, setPendingOrder] = useState(null);
 
   const currentSymbol = 'SEI_USDT';
 
@@ -579,41 +594,77 @@ export function TradingTerminal() {
     setLoading(false);
   };
 
-  const handleOrderSubmit = async (orderData) => {
-    setLoading(true);
+  const submitOrderToAPI = async (orderData) => {
     try {
-      addLog(`Submitting ${orderData.side} order: ${orderData.quantity} ${orderData.baseAsset} @ ${orderData.price}`);
-      
-      // Log des données envoyées pour debug
-      addLog(`Order data: ${JSON.stringify(orderData)}`, 'info');
-      
+      addLog(`Submitting ${orderData.side} order: ${orderData.quantity} tokens @ ${orderData.price}`);
       const response = await api.registerOrder(orderData);
       
-      // Log de la réponse complète pour debug
-      addLog(`API Response: ${JSON.stringify(response)}`, 'info');
-  
       if (response.status_code === 1) {
         addLog(`Order submitted successfully. ID: ${response.order.orderId}`, 'success');
         if (response.order.trades?.length > 0) {
           addLog(`Order matched! ${response.order.trades.length} trades executed`, 'success');
         }
-        // Refresh orderbook after successful order
         await loadOrderbook();
       } else {
         addLog(`Order failed: ${response.message}`, 'error');
-        // Log plus de détails sur l'erreur
-        if (response.error) {
-          addLog(`Error details: ${response.error}`, 'error');
-        }
-        if (response.validation_errors) {
-          addLog(`Validation errors: ${JSON.stringify(response.validation_errors)}`, 'error');
+        if (response.errors) {
+          addLog(`Validation errors: ${JSON.stringify(response.errors)}`, 'error');
         }
       }
     } catch (error) {
       addLog(`Order error: ${error.message}`, 'error');
       console.error('Full error:', error);
     }
+  };
+
+  const handleOrderSubmit = async (orderData) => {
+    if (!isConnected || !account) {
+      addLog('Please connect your wallet first', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      addLog('Checking token approvals...');
+      const approvalCheck = await checkOrderApprovals({
+        side: orderData.side,
+        quantity: orderData.quantity.toString(),
+        price: orderData.price.toString(),
+        baseAsset: orderData.baseAsset,
+        quoteAsset: orderData.quoteAsset
+      });
+
+      if (approvalCheck.needsApproval) {
+        addLog('Token approval required', 'info');
+        setTokenApprovals(approvalCheck.tokenApprovals);
+        setPendingOrder(orderData);
+        setApprovalModalOpen(true);
+      } else {
+        addLog('Token approvals verified', 'success');
+        await submitOrderToAPI(orderData);
+      }
+    } catch (error) {
+      addLog(`Approval check failed: ${error.message}`, 'error');
+      console.error('Approval check error:', error);
+    }
     setLoading(false);
+  };
+
+  const handleApprovalComplete = async () => {
+    setApprovalModalOpen(false);
+    if (pendingOrder) {
+      addLog('Approvals completed, submitting order...', 'success');
+      setLoading(true);
+      await submitOrderToAPI(pendingOrder);
+      setPendingOrder(null);
+      setLoading(false);
+    }
+  };
+
+  const handleApprovalCancel = () => {
+    setApprovalModalOpen(false);
+    setPendingOrder(null);
+    addLog('Order cancelled by user', 'info');
   };
   
   const handleStartAgent = async () => {
@@ -891,6 +942,13 @@ export function TradingTerminal() {
           <span className="text-green-400">ORDERS: {orderbook ? (orderbook.asks?.length || 0) + (orderbook.bids?.length || 0) : 0}</span>
         </div>
       </div>
+
+      <ApprovalModal
+        isOpen={approvalModalOpen}
+        tokenApprovals={tokenApprovals}
+        onApprovalComplete={handleApprovalComplete}
+        onCancel={handleApprovalCancel}
+      />
     </div>
   );
 }

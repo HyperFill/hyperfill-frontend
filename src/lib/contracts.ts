@@ -4,6 +4,8 @@
 export const CONTRACTS = {
     VAULT_ADDRESS: "0x2B8C9cd22eFd93e15ff4A7cB7A0ef0A16Eb435C3",
     WSEI_ADDRESS: "0x8eFcF5c2DDDA6C1A63D8395965Ca6c0609CE32D5",
+    SETTLEMENT_ADDRESS: "0xF14dbF48b727AD8346dD8Fa6C0FC42FCb81FF115",
+    USDT_ADDRESS: "0x54099052D0e04a5CF24e4c7c82eA693Fb25E0Bed",
   } as const;
   
 
@@ -51,6 +53,18 @@ export const CONTRACTS = {
     "function transfer(address to, uint256 amount) external returns (bool)",
     "function deposit() external payable",
     "function withdraw(uint256 amount) external",
+    "event Transfer(address indexed from, address indexed to, uint256 value)",
+    "event Approval(address indexed owner, address indexed spender, uint256 value)"
+  ] as const;
+
+  export const ERC20_ABI = [
+    "function approve(address spender, uint256 amount) external returns (bool)",
+    "function balanceOf(address account) external view returns (uint256)",
+    "function allowance(address owner, address spender) external view returns (uint256)",
+    "function decimals() external view returns (uint8)",
+    "function symbol() external view returns (string)",
+    "function name() external view returns (string)",
+    "function transfer(address to, uint256 amount) external returns (bool)",
     "event Transfer(address indexed from, address indexed to, uint256 value)",
     "event Approval(address indexed owner, address indexed spender, uint256 value)"
   ] as const;
