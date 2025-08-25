@@ -14,8 +14,9 @@ export interface WalletState {
   isConnected: boolean;
   isConnecting: boolean;
   chainId: number | null;
-  provider: ethers.providers.Web3Provider | null;
+  provider: ethers.BrowserProvider | null;
   signer: ethers.Signer | null;
+  isNetworkSwitching: boolean;
 }
 
 export const useWallet = () => {
@@ -26,81 +27,226 @@ export const useWallet = () => {
     chainId: null,
     provider: null,
     signer: null,
+    isNetworkSwitching: false,
   });
 
-  // Check if wallet is already connected
-  const checkConnection = useCallback(async () => {
-    if (!window.ethereum) return;
+  // Check if wallet is available
+  const isWalletAvailable = () => {
+    return typeof window !== 'undefined' && 
+           window.ethereum && 
+           window.ethereum.request;
+  };
+
+  // Force switch to SEI Testnet with retry logic
+  const forceSwitchToSeiTestnet = useCallback(async (): Promise<boolean> => {
+    if (!isWalletAvailable()) return false;
+
+    setState(prev => ({ ...prev, isNetworkSwitching: true }));
+
+    const seiConfig = {
+      chainId: `0x${SEI_TESTNET.chainId.toString(16)}`,
+      chainName: SEI_TESTNET.chainName,
+      nativeCurrency: SEI_TESTNET.nativeCurrency,
+      rpcUrls: SEI_TESTNET.rpcUrls,
+      blockExplorerUrls: SEI_TESTNET.blockExplorerUrls,
+    };
 
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const accounts = await provider.listAccounts();
-      const network = await provider.getNetwork();
-
-      if (accounts.length > 0) {
-        const signer = provider.getSigner();
-        setState({
-          account: accounts[0],
-          isConnected: true,
-          isConnecting: false,
-          chainId: network.chainId,
-          provider,
-          signer,
-        });
+      // First, try to switch to existing network
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: seiConfig.chainId }],
+      });
+      
+      setState(prev => ({ ...prev, isNetworkSwitching: false }));
+      return true;
+    } catch (switchError: any) {
+      console.log('Switch failed, attempting to add network:', switchError);
+      
+      // If network doesn't exist (error 4902), add it
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [seiConfig],
+          });
+          
+          // Wait for network to be added, then switch
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: seiConfig.chainId }],
+          });
+          
+          setState(prev => ({ ...prev, isNetworkSwitching: false }));
+          return true;
+        } catch (addError: any) {
+          console.error('Error adding SEI testnet:', addError);
+          setState(prev => ({ ...prev, isNetworkSwitching: false }));
+          
+          if (addError.code === 4001) {
+            throw new Error('User rejected adding SEI Testnet. This app requires SEI Testnet to function.');
+          }
+          throw new Error(`Failed to add SEI Testnet: ${addError.message}`);
+        }
+      } else if (switchError.code === 4001) {
+        setState(prev => ({ ...prev, isNetworkSwitching: false }));
+        throw new Error('User rejected network switch. This app requires SEI Testnet to function.');
+      } else {
+        setState(prev => ({ ...prev, isNetworkSwitching: false }));
+        throw new Error(`Failed to switch to SEI Testnet: ${switchError.message}`);
       }
-    } catch (error) {
-      console.error('Error checking connection:', error);
     }
   }, []);
 
-  // Connect wallet
+  // Enhanced connection with mandatory network switching
   const connect = useCallback(async () => {
-    if (!window.ethereum) {
-      alert('MetaMask is not installed!');
-      return;
+    if (!isWalletAvailable()) {
+      throw new Error('No Web3 wallet detected. Please install MetaMask or another Web3 wallet.');
     }
 
     setState(prev => ({ ...prev, isConnecting: true }));
 
     try {
-      // Request account access
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const account = await signer.getAddress();
-      const network = await provider.getNetwork();
+      // Step 1: Request account access
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
 
-      // Check if we're on SEI testnet, if not switch
-      if (network.chainId !== SEI_TESTNET.chainId) {
-        await switchToSeiTestnet();
-        // Recheck network after switch
-        const newNetwork = await provider.getNetwork();
-        setState({
-          account,
-          isConnected: true,
-          isConnecting: false,
-          chainId: newNetwork.chainId,
-          provider,
-          signer,
-        });
-      } else {
-        setState({
-          account,
-          isConnected: true,
-          isConnecting: false,
-          chainId: network.chainId,
-          provider,
-          signer,
-        });
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts available. Please unlock your wallet.');
       }
-    } catch (error: any) {
-      console.error('Error connecting wallet:', error);
-      setState(prev => ({ 
-        ...prev, 
+
+      // Step 2: Check current network
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      const currentChainIdNum = parseInt(currentChainId, 16);
+
+      // Step 3: Force switch to SEI Testnet if not already on it
+      if (currentChainIdNum !== SEI_TESTNET.chainId) {
+        console.log(`Wrong network detected (${currentChainIdNum}), forcing switch to SEI Testnet...`);
+        
+        try {
+          await forceSwitchToSeiTestnet();
+        } catch (networkError) {
+          setState(prev => ({ ...prev, isConnecting: false }));
+          throw networkError;
+        }
+
+        // Wait for network switch to complete
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // Step 4: Verify we're on correct network
+      const finalChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      const finalChainIdNum = parseInt(finalChainId, 16);
+
+      if (finalChainIdNum !== SEI_TESTNET.chainId) {
+        setState(prev => ({ ...prev, isConnecting: false }));
+        throw new Error(`Failed to connect to SEI Testnet. Current network: ${finalChainIdNum}, Required: ${SEI_TESTNET.chainId}`);
+      }
+
+      // Step 5: Initialize provider and signer on correct network
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const network = await provider.getNetwork();
+      
+      // Double-check network from provider
+      if (Number(network.chainId) !== SEI_TESTNET.chainId) {
+        setState(prev => ({ ...prev, isConnecting: false }));
+        throw new Error(`Network mismatch after connection. Expected ${SEI_TESTNET.chainId}, got ${Number(network.chainId)}`);
+      }
+
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+
+      // Step 6: Update state with successful connection
+      setState({
+        account: address,
+        isConnected: true,
         isConnecting: false,
+        chainId: SEI_TESTNET.chainId,
+        provider,
+        signer,
+        isNetworkSwitching: false,
+      });
+
+      console.log('✅ Successfully connected to SEI Testnet:', {
+        address,
+        chainId: SEI_TESTNET.chainId,
+        network: network.name
+      });
+
+    } catch (error: any) {
+      console.error('Connection error:', error);
+      setState(prev => ({
+        ...prev,
+        isConnecting: false,
+        isNetworkSwitching: false,
         account: null,
-        isConnected: false 
+        isConnected: false,
+        provider: null,
+        signer: null
+      }));
+      
+      // Re-throw with better error messages
+      if (error.code === 4001) {
+        throw new Error('Connection rejected by user. Please approve the connection to continue.');
+      } else if (error.code === -32002) {
+        throw new Error('Connection request already pending. Please check your wallet.');
+      } else if (error.message) {
+        throw error;
+      } else {
+        throw new Error(`Connection failed: ${error.toString()}`);
+      }
+    }
+  }, [forceSwitchToSeiTestnet]);
+
+  // Check if already connected and on correct network
+  const checkConnection = useCallback(async () => {
+    if (!isWalletAvailable()) return;
+
+    try {
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_accounts' 
+      });
+
+      if (accounts && accounts.length > 0) {
+        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        const currentChainIdNum = parseInt(currentChainId, 16);
+
+        // Only restore connection if on SEI Testnet
+        if (currentChainIdNum === SEI_TESTNET.chainId) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const network = await provider.getNetwork();
+          const signer = await provider.getSigner();
+          const address = await signer.getAddress();
+          
+          setState({
+            account: address,
+            isConnected: true,
+            isConnecting: false,
+            chainId: Number(network.chainId),
+            provider,
+            signer,
+            isNetworkSwitching: false,
+          });
+        } else {
+          // Connected but wrong network - show as disconnected
+          console.warn(`Wallet connected to wrong network (${currentChainIdNum}), showing as disconnected`);
+          setState(prev => ({
+            ...prev,
+            isConnected: false,
+            account: null,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking connection:', error);
+      setState(prev => ({
+        ...prev,
+        isConnecting: false,
+        isConnected: false,
+        isNetworkSwitching: false,
       }));
     }
   }, []);
@@ -114,86 +260,123 @@ export const useWallet = () => {
       chainId: null,
       provider: null,
       signer: null,
+      isNetworkSwitching: false,
     });
   }, []);
 
-  // Switch to SEI Testnet
-  const switchToSeiTestnet = useCallback(async () => {
-    if (!window.ethereum) return;
-
-    try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${SEI_TESTNET.chainId.toString(16)}` }],
-      });
-    } catch (switchError: any) {
-      // This error code indicates that the chain has not been added to MetaMask
-      if (switchError.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: `0x${SEI_TESTNET.chainId.toString(16)}`,
-                chainName: SEI_TESTNET.chainName,
-                nativeCurrency: SEI_TESTNET.nativeCurrency,
-                rpcUrls: SEI_TESTNET.rpcUrls,
-                blockExplorerUrls: SEI_TESTNET.blockExplorerUrls,
-              },
-            ],
-          });
-        } catch (addError) {
-          console.error('Error adding SEI testnet:', addError);
-          throw addError;
-        }
-      } else {
-        console.error('Error switching to SEI testnet:', switchError);
-        throw switchError;
+  // Handle network switches - force back to SEI if user switches away
+  const handleChainChanged = useCallback(async (chainId: string) => {
+    console.log('Chain changed to:', chainId);
+    const newChainId = parseInt(chainId, 16);
+    
+    if (newChainId !== SEI_TESTNET.chainId) {
+      console.warn('User switched away from SEI Testnet, disconnecting...');
+      
+      // Show warning and disconnect
+      setTimeout(() => {
+        alert('This app only works on SEI Testnet. Please switch back to SEI Testnet and reconnect.');
+      }, 500);
+      
+      disconnect();
+    } else {
+      // User switched to SEI testnet, update state
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        
+        setState(prev => ({ 
+          ...prev, 
+          chainId: newChainId,
+          provider,
+          signer,
+          account: address,
+          isConnected: true,
+        }));
+      } catch (error) {
+        console.error('Error handling chain change to SEI:', error);
+        disconnect();
       }
     }
-  }, []);
+  }, [disconnect]);
 
-  // Listen to account and network changes
-  useEffect(() => {
-    if (!window.ethereum) return;
-
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length === 0) {
+  // Handle account changes
+  const handleAccountsChanged = useCallback(async (accounts: string[]) => {
+    console.log('Accounts changed:', accounts);
+    
+    if (!accounts || accounts.length === 0) {
+      disconnect();
+    } else {
+      // Check if still on SEI testnet
+      try {
+        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        const currentChainIdNum = parseInt(currentChainId, 16);
+        
+        if (currentChainIdNum === SEI_TESTNET.chainId) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const address = await signer.getAddress();
+          
+          setState(prev => ({ 
+            ...prev, 
+            account: address,
+            provider,
+            signer,
+            isConnected: true
+          }));
+        } else {
+          // Wrong network, disconnect
+          disconnect();
+        }
+      } catch (error) {
+        console.error('Error handling account change:', error);
         disconnect();
-      } else {
-        setState(prev => ({ ...prev, account: accounts[0] }));
+      }
+    }
+  }, [disconnect]);
+
+  // Setup event listeners
+  useEffect(() => {
+    if (!isWalletAvailable()) return;
+
+    const safeAddEventListener = (event: string, handler: (...args: any[]) => void) => {
+      try {
+        if (window.ethereum.on) {
+          window.ethereum.on(event, handler);
+        }
+      } catch (error) {
+        console.error(`Error adding ${event} listener:`, error);
       }
     };
 
-    const handleChainChanged = (chainId: string) => {
-      const newChainId = parseInt(chainId, 16);
-      setState(prev => ({ ...prev, chainId: newChainId }));
-      
-      // If not on SEI testnet, show warning
-      if (newChainId !== SEI_TESTNET.chainId) {
-        console.warn('Please switch to SEI Testnet');
-      }
-    };
-
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
+    safeAddEventListener('accountsChanged', handleAccountsChanged);
+    safeAddEventListener('chainChanged', handleChainChanged);
 
     // Check connection on mount
-    checkConnection();
+    const timeoutId = setTimeout(() => {
+      checkConnection();
+    }, 500);
 
     return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      clearTimeout(timeoutId);
+      if (window.ethereum && window.ethereum.removeListener) {
+        try {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.removeListener('chainChanged', handleChainChanged);
+        } catch (error) {
+          console.error('Error removing event listeners:', error);
+        }
       }
     };
-  }, [checkConnection, disconnect]);
+  }, [checkConnection, handleAccountsChanged, handleChainChanged]);
 
   return {
     ...state,
     connect,
     disconnect,
-    switchToSeiTestnet,
+    switchToSeiTestnet: forceSwitchToSeiTestnet,
     isOnSeiTestnet: state.chainId === SEI_TESTNET.chainId,
+    // Convenience method to check if user needs to switch networks
+    needsNetworkSwitch: state.isConnected && state.chainId !== SEI_TESTNET.chainId,
   };
 };

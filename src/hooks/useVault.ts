@@ -93,16 +93,16 @@ export const useVault = () => {
       ]);
 
       setStats({
-        userShares: ethers.utils.formatEther(userShares),
-        userBalance: ethers.utils.formatEther(userBalance),
-        totalAssets: ethers.utils.formatEther(totalAssets),
-        totalSupply: ethers.utils.formatEther(totalSupply),
-        sharePrice: ethers.utils.formatEther(sharePrice),
-        availableAssets: ethers.utils.formatEther(availableAssets),
-        minDeposit: ethers.utils.formatEther(minDeposit),
+        userShares: ethers.formatEther(userShares),
+        userBalance: ethers.formatEther(userBalance),
+        totalAssets: ethers.formatEther(totalAssets),
+        totalSupply: ethers.formatEther(totalSupply),
+        sharePrice: ethers.formatEther(sharePrice),
+        availableAssets: ethers.formatEther(availableAssets),
+        minDeposit: ethers.formatEther(minDeposit),
         isPaused,
-        wseiBalance: ethers.utils.formatEther(wseiBalance),
-        wseiAllowance: ethers.utils.formatEther(wseiAllowance),
+        wseiBalance: ethers.formatEther(wseiBalance),
+        wseiAllowance: ethers.formatEther(wseiAllowance),
       });
     } catch (error) {
       console.error('Error fetching vault stats:', error);
@@ -124,7 +124,7 @@ export const useVault = () => {
       if (!contracts) return false;
 
       const { wseiContract } = contracts;
-      const amountWei = ethers.utils.parseEther(amount);
+      const amountWei = ethers.parseEther(amount);
 
       const tx = await wseiContract.approve(CONTRACTS.VAULT_ADDRESS, amountWei);
       await tx.wait();
@@ -152,12 +152,12 @@ export const useVault = () => {
       if (!contracts) return { success: false, error: 'Failed to get contracts' };
 
       const { vaultContract } = contracts;
-      const amountWei = ethers.utils.parseEther(amount);
+      const amountWei = ethers.parseEther(amount);
 
       // Check if approval is needed
       if (stats) {
-        const allowance = ethers.utils.parseEther(stats.wseiAllowance);
-        if (allowance.lt(amountWei)) {
+        const allowance = ethers.parseEther(stats.wseiAllowance);
+        if (allowance < (amountWei)) {
           const approved = await approveWSEI(amount);
           if (!approved) {
             return { success: false, error: 'Failed to approve WSEI' };
@@ -177,7 +177,7 @@ export const useVault = () => {
       if (receipt.events) {
         const depositEvent = receipt.events.find((e: any) => e.event === 'LiquidityAdded');
         if (depositEvent) {
-          sharesReceived = ethers.utils.formatEther(depositEvent.args.shares);
+          sharesReceived = ethers.formatEther(depositEvent.args.shares);
         }
       }
 
@@ -230,7 +230,7 @@ export const useVault = () => {
       if (receipt.events) {
         const withdrawEvent = receipt.events.find((e: any) => e.event === 'LiquidityRemoved');
         if (withdrawEvent) {
-          assetsReceived = ethers.utils.formatEther(withdrawEvent.args.assets);
+          assetsReceived = ethers.formatEther(withdrawEvent.args.assets);
         }
       }
 
