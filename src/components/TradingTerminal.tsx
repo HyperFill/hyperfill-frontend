@@ -9,7 +9,6 @@ import {
   TrendingDown,
   DollarSign,
   Activity,
-  Brain,
   Zap,
   RefreshCw,
   Play,
@@ -285,7 +284,7 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
   const [side, setSide] = useState('buy');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [baseAsset, setBaseAsset] = useState('SEI');
+  const [baseAsset, setBaseAsset] = useState('APT');
   const [quoteAsset, setQuoteAsset] = useState('USDT');
 
   const handleSubmit = (e) => {
@@ -293,7 +292,7 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
     if (!price || !quantity || !account) return;
 
     const getTokenAddress = (symbol) => {
-      if (symbol === 'SEI') return CONTRACTS.WSEI_ADDRESS;
+      if (symbol === 'APT') return CONTRACTS.APT_ADDRESS;
       if (symbol === 'USDT') return CONTRACTS.USDT_ADDRESS;
       return symbol;
     };
@@ -346,7 +345,7 @@ const TradingPanel = ({ account, onOrderSubmit, loading }) => {
                 onChange={(e) => setBaseAsset(e.target.value)}
                 className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm"
               >
-                <option value="SEI">SEI</option>
+                <option value="APT">APT</option>
                 <option value="BTC">BTC</option>
                 <option value="ETH">ETH</option>
               </select>
@@ -423,8 +422,7 @@ const AgentStatusPanel = ({ onStartAgent, agentRunning, agentLoading }) => {
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base font-mono flex items-center gap-2">
-          <Brain className="h-4 w-4 text-blue-400" />
+        <CardTitle className="text-base font-mono">
           AI_AGENTS
         </CardTitle>
         <Button
@@ -548,8 +546,8 @@ export function TradingTerminal() {
     isConnecting,
     connect,
     disconnect,
-    isOnSeiTestnet,
-    switchToSeiTestnet
+    isOnAptosTestnet,
+    switchToAptosTestnet
   } = useWallet();
 
   const { checkOrderApprovals } = useTrading();
@@ -567,7 +565,7 @@ export function TradingTerminal() {
   const [tokenApprovals, setTokenApprovals] = useState([]);
   const [pendingOrder, setPendingOrder] = useState(null);
 
-  const currentSymbol = `${CONTRACTS.WSEI_ADDRESS}_${CONTRACTS.USDT_ADDRESS}`;
+  const currentSymbol = `${CONTRACTS.APT_ADDRESS}_${CONTRACTS.USDT_ADDRESS}`;
 
   const addLog = (message, type = 'info') => {
     const newLog = {
@@ -740,9 +738,9 @@ export function TradingTerminal() {
           </Button>
 
           {/* Network Warning */}
-          {isConnected && !isOnSeiTestnet && (
+          {isConnected && !isOnAptosTestnet && (
             <Button
-              onClick={switchToSeiTestnet}
+              onClick={switchToAptosTestnet}
               variant="destructive"
               size="sm"
               className="flex items-center gap-2 font-mono text-xs"
@@ -782,7 +780,7 @@ export function TradingTerminal() {
           <div className="flex items-center space-x-2 text-green-400">
             <Power className="h-4 w-4" />
             <span className="text-sm font-mono">
-              {isConnected && isOnSeiTestnet ? "ONLINE" : "OFFLINE"}
+              {isConnected && isOnAptosTestnet ? "ONLINE" : "OFFLINE"}
             </span>
           </div>
         </div>
@@ -792,18 +790,18 @@ export function TradingTerminal() {
       <div className="bg-gray-900 border border-t-0 border-green-400/30 rounded-b-lg p-4 min-h-[calc(100vh-100px)]">
         {/* ASCII Header */}
         <div className="text-green-400 font-mono text-xs mb-6 leading-tight">
-          <pre>{`
-██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███████╗██╗██╗     ██╗     
-██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔════╝██║██║     ██║     
-███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝█████╗  ██║██║     ██║     
-██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝  ██║██║     ██║     
+          <pre className="text-blue-400">{`
+██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ███████╗██╗██╗     ██╗
+██║  ██║╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██╔════╝██║██║     ██║
+███████║ ╚████╔╝ ██████╔╝█████╗  ██████╔╝█████╗  ██║██║     ██║
+██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝  ██║██║     ██║
 ██║  ██║   ██║   ██║     ███████╗██║  ██║██║     ██║███████╗███████╗
 ╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
                                                                       
 [SYSTEM] HyperFill Autonomous Trading Terminal v2.1.0
-[SYSTEM] Connected to Sei Network (testnet) 
+[SYSTEM] Connected to Aptos Network (testnet) 
 [SYSTEM] AI Trading Collective: Buffett, Belfort, Lynch & Dalio
-[SYSTEM] Vault Status: ${isConnected && isOnSeiTestnet ? 'ACTIVE' : 'STANDBY'} | Network: ${isOnSeiTestnet ? 'SEI-TESTNET' : 'UNKNOWN'}
+[SYSTEM] Vault Status: ${isConnected && isOnAptosTestnet ? 'ACTIVE' : 'STANDBY'} | Network: ${isOnAptosTestnet ? 'APTOS-TESTNET' : 'UNKNOWN'}
 [SYSTEM] "We make money while you sleep" - The HyperFill Team
           `}</pre>
         </div>
@@ -820,7 +818,7 @@ export function TradingTerminal() {
 
         {/* Terminal Prompt */}
         <div className="mb-4 text-sm font-mono">
-          <span className="text-green-400">hyperfill@sei</span>
+          <span className="text-green-400">hyperfill@aptos</span>
           <span className="text-gray-400">:</span>
           <span className="text-red-400">~/vault</span>
           <span className="text-gray-400">$ </span>
@@ -910,12 +908,12 @@ export function TradingTerminal() {
             </Button>
             <div className="flex items-center space-x-2 text-green-400 text-xs font-mono">
               <Power className="h-3 w-3" />
-              <span>DAEMON {isConnected && isOnSeiTestnet ? 'RUNNING' : 'STANDBY'}</span>
+              <span>DAEMON {isConnected && isOnAptosTestnet ? 'RUNNING' : 'STANDBY'}</span>
             </div>
           </div>
 
           <div className="text-xs font-mono text-green-400">
-            <span className="text-green-400">hyperfill@sei</span>
+            <span className="text-green-400">hyperfill@aptos</span>
             <span className="text-gray-400">:</span>
             <span className="text-red-400">~/vault</span>
             <span className="text-gray-400">$ </span>
@@ -927,10 +925,10 @@ export function TradingTerminal() {
       {/* Status Bar */}
       <div className="flex items-center justify-between text-xs font-mono mt-2 px-2 py-1 bg-gray-800/50 border border-green-400/30 rounded">
         <div className="flex items-center space-x-4">
-          <span className={isConnected && isOnSeiTestnet ? "text-green-400" : "text-red-400"}>●</span>
-          <span className="text-green-400">{isOnSeiTestnet ? "SEI TESTNET" : "DISCONNECTED"}</span>
+          <span className={isConnected && isOnAptosTestnet ? "text-green-400" : "text-red-400"}>●</span>
+          <span className="text-green-400">{isOnAptosTestnet ? "APTOS TESTNET" : "DISCONNECTED"}</span>
           <span className="text-gray-400">|</span>
-          <span className="text-green-400">STATUS: {isConnected ? (isOnSeiTestnet ? "ACTIVE" : "WRONG_NET") : "OFFLINE"}</span>
+          <span className="text-green-400">STATUS: {isConnected ? (isOnAptosTestnet ? "ACTIVE" : "WRONG_NET") : "OFFLINE"}</span>
           <span className="text-gray-400">|</span>
           <span className="text-green-400">WALLET: {isConnected ? "CONNECTED" : "NONE"}</span>
         </div>

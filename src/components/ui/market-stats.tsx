@@ -28,7 +28,6 @@ const tradingMetrics = [
 export function MarketStats() {
   return (
     <div className="space-y-4">
-      {/* SEI Price Card */}
       <Card className="bg-card border border-border">
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
@@ -37,10 +36,10 @@ export function MarketStats() {
               {marketData.isPositive ? "BULL" : "BEAR"}
             </Badge>
           </div>
-          
+
           <div className="space-y-2 font-mono text-xs">
             <div className="flex justify-between items-center p-2 bg-muted/20 border border-border/50">
-              <span className="text-muted-foreground">sei_price:</span>
+              <span className="text-muted-foreground">apt_price:</span>
               <div className="flex items-center space-x-2">
                 <span className="text-foreground font-bold text-sm">{marketData.price}</span>
                 <span className={`${marketData.isPositive ? 'text-success' : 'text-destructive'}`}>
