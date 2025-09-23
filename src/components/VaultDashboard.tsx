@@ -12,7 +12,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useVault } from '@/hooks/useVault';
 
 export const VaultDashboard = () => {
-  const { account, isConnected, isOnAptosTestnet } = useWallet();
+  const { account, isConnected, isOnSeiTestnet } = useWallet();
   const { stats, loading, refreshing, deposit, withdraw, approveWSEI, refreshStats } = useVault();
   const { toast } = useToast();
   
@@ -149,7 +149,7 @@ export const VaultDashboard = () => {
     );
   }
 
-  if (!isOnAptosTestnet) {
+  if (!isOnSeiTestnet) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Card className="w-[400px]">

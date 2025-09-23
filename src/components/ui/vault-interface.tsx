@@ -11,8 +11,8 @@ import { useVault } from "@/hooks/useVault";
 import { useToast } from "@/hooks/use-toast";
 
 export function VaultInterface() {
-  const { isConnected, isOnAptosTestnet } = useWallet();
-  const { stats, loading, deposit, withdraw } = useVault();
+  const { isConnected, isOnSeiTestnet } = useWallet();
+  const { stats, loading, deposit, withdraw, approveWSEI } = useVault();
   const { toast } = useToast();
   
   const [amount, setAmount] = useState("");
@@ -20,10 +20,10 @@ export function VaultInterface() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleTransaction = async () => {
-    if (!isConnected || !isOnAptosTestnet) {
+    if (!isConnected || !isOnSeiTestnet) {
       toast({
         title: "Connection required",
-        description: "Please connect your wallet to Aptos Testnet",
+        description: "Please connect your wallet to SEI Testnet",
         variant: "destructive",
       });
       return;
@@ -46,7 +46,7 @@ export function VaultInterface() {
         if (stats && parseFloat(amount) < parseFloat(stats.minDeposit)) {
           toast({
             title: "Amount too small",
-            description: `Minimum deposit is ${stats.minDeposit} APT`,
+            description: `Minimum deposit is ${stats.minDeposit} WSEI`,
             variant: "destructive",
           });
           return;
@@ -110,9 +110,9 @@ export function VaultInterface() {
     yourShares: stats ? parseFloat(stats.userShares).toFixed(4) : "0.0000",
     shareValue: stats ? parseFloat(stats.sharePrice).toFixed(4) : "1.0000",
     apy: "18.7%", // This would come from historical data
-    aptBalance: stats ? parseFloat(stats.aptBalance).toFixed(4) : "0.0000",
+    wseiBalance: stats ? parseFloat(stats.wseiBalance).toFixed(4) : "0.0000",
     minDeposit: stats ? parseFloat(stats.minDeposit).toFixed(2) : "1.00",
-    needsApproval: false
+    needsApproval: stats && amount ? parseFloat(amount) > parseFloat(stats.wseiAllowance) : false
   };
 
   return (
@@ -147,7 +147,7 @@ export function VaultInterface() {
           <div className="flex justify-between items-center p-2 bg-muted/20 border border-border/50">
             <span className="text-muted-foreground">total_value_locked:</span>
             <span className="text-red-400 font-bold">
-              {loading ? "loading..." : `${displayStats.totalValueLocked} APT`}
+              {loading ? "loading..." : `${displayStats.totalValueLocked} WSEI`}
             </span>
           </div>
           <div className="flex justify-between items-center p-2 bg-muted/20 border border-border/50">
@@ -163,13 +163,13 @@ export function VaultInterface() {
           <div className="flex justify-between items-center p-2 bg-muted/20 border border-border/50">
             <span className="text-muted-foreground">share_value:</span>
             <span className="text-foreground">
-              {loading ? "loading..." : `${displayStats.shareValue} APT`}
+              {loading ? "loading..." : `${displayStats.shareValue} WSEI`}
             </span>
           </div>
           <div className="flex justify-between items-center p-2 bg-muted/20 border border-border/50">
-            <span className="text-muted-foreground">apt_balance:</span>
+            <span className="text-muted-foreground">wsei_balance:</span>
             <span className="text-foreground">
-              {loading ? "loading..." : `${displayStats.aptBalance} APT`}
+              {loading ? "loading..." : `${displayStats.wseiBalance} WSEI`}
             </span>
           </div>
         </div>
@@ -206,19 +206,19 @@ export function VaultInterface() {
                 <Input
                   id="amount"
                   type="number"
-                  placeholder={`Min: ${displayStats.minDeposit} APT`}
+                  placeholder={`Min: ${displayStats.minDeposit} WSEI`}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="terminal-border font-mono pr-16"
                   disabled={!isConnected || isProcessing}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  APT
+                  WSEI
                 </span>
               </div>
               {displayStats.needsApproval && amount && (
                 <p className="text-xs text-amber-500 font-mono">
-                  [INFO] Approval required for {amount} APT
+                  [INFO] Approval required for {amount} WSEI
                 </p>
               )}
             </div>
@@ -247,7 +247,7 @@ export function VaultInterface() {
               isProcessing || 
               loading ||
               !isConnected || 
-              !isOnAptosTestnet ||
+              !isOnSeiTestnet ||
               (isDepositing && !amount) || 
               (!isDepositing && parseFloat(displayStats.yourShares) === 0)
             }
@@ -261,7 +261,7 @@ export function VaultInterface() {
               <>
                 <Wallet className="h-4 w-4 mr-2" />
                 {isDepositing 
-                  ? `./deposit --amount=${amount || "XXX"} --token=APT`
+                  ? `./deposit --amount=${amount || "XXX"} --token=WSEI`
                   : `./withdraw --shares=${displayStats.yourShares} --all`
                 }
               </>
